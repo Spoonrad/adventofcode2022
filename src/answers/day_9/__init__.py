@@ -46,30 +46,19 @@ class Knot:
 
     def follow(self, knot):
 
-        if knot.position.x - self.position.x > 1:
-            self.move(Direction.RIGHT)
-            if knot.position.y - self.position.y > 0:
-                self.move(Direction.UP)
-            if knot.position.y - self.position.y < 0:
-                self.move(Direction.DOWN)
-        if knot.position.x - self.position.x < -1:
-            self.move(Direction.LEFT)
-            if knot.position.y - self.position.y > 0:
-                self.move(Direction.UP)
-            if knot.position.y - self.position.y < 0:
-                self.move(Direction.DOWN)
-        if knot.position.y - self.position.y > 1:
-            self.move(Direction.UP)
-            if knot.position.x - self.position.x > 0:
-                self.move(Direction.RIGHT)
-            if knot.position.x - self.position.x < 0:
-                self.move(Direction.LEFT)
-        if knot.position.y - self.position.y < -1:
-            self.move(Direction.DOWN)
-            if knot.position.x - self.position.x > 0:
-                self.move(Direction.RIGHT)
-            if knot.position.x - self.position.x < 0:
-                self.move(Direction.LEFT)
+        for get_dim, get_diag_dim, directions, diag_directions in zip(
+                [(lambda _knot: _knot.position.x), (lambda _knot: _knot.position.y)],
+                [(lambda _knot: _knot.position.y), (lambda _knot: _knot.position.x)],
+                [[Direction.RIGHT, Direction.LEFT], [Direction.UP, Direction.DOWN]],
+                [[Direction.UP, Direction.DOWN], [Direction.RIGHT, Direction.LEFT]]
+
+        ):
+            for sign, direction in zip((1, -1), directions):
+                if (get_dim(knot) - get_dim(self))*sign > 1:
+                    self.move(direction)
+                    for _sign, diag_direction in zip((1, -1), diag_directions):
+                        if (get_diag_dim(knot) - get_diag_dim(self))*_sign > 0:
+                            self.move(diag_direction)
 
 def solve(input_str, nb_knots):
 
