@@ -1,212 +1,155 @@
 from utils import read_day_input_file
 from collections import defaultdict
-from enum import Enum
 from math import inf
 
 DAY = 12
+ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
 
 class OutOfBounds(Exception):
     pass
 
 class Cell():
-
     def __init__(self, height, x, y, is_start=False, is_end=False):
-        self.x = x
-        self.y = y
         self.height = height
         self.is_start = is_start
         self.is_end = is_end
-
-    def __str__(self):
-        if self.is_start:
-            return 'S'
-        if self.is_end:
-            return 'E'
-        return str(self.height)
-
-    def __repr__(self):
-        return self.__str__()
+        self.x = x
+        self.y = y
 
     def __eq__(self, other):
         return (self.height == other.height and
+                self.is_start == other.is_start and
+                self.is_end == other.is_end and
                 self.x == other.x and
                 self.y == other.y)
 
+    def __str__(self):
+        if self.is_start:
+            return "S"
+        elif self.is_end:
+            return "E"
+        return ALPHABET[self.height]
+
     @staticmethod
-    def parse_cell(_input, x, y):
-        alphabet = 'abcdefghijklmnopqrstuvwxyz'
-        heights = {**{k: i for i, k in enumerate(alphabet)},
+    def parse_cell(input_str, x, y):
+        heights = {**{k: i for i, k in enumerate(ALPHABET)},
                    'S': 0,
-                   'E': len(alphabet) - 1
+                   'E': len(ALPHABET) - 1
                    }
         return Cell(
+            height=heights[input_str],
+            is_start=(input_str == 'S'),
+            is_end=(input_str == 'E'),
             x=x,
-            y=y,
-            height=heights[_input],
-            is_start=(_input == 'S'),
-            is_end=(_input == 'E'))
+            y=y)
 
 
-def parse_grid(input_str):
-    grid = defaultdict(dict)
-    start_cell = None
-    end_cell = None
+class Grid():
+    def __init__(self, cells, start_cell, end_cell):
+        self.cells = cells
+        self.width = len(cells.keys())
+        self.height = len(cells[0])
+        self.start_cell = start_cell
+        self.end_cell = end_cell
 
-    for y, line in enumerate(input_str.split('\n')):
-        for x, _input in enumerate(line):
-            cell = Cell.parse_cell(_input, x, y)
-            if cell.is_start:
-                start_cell = cell
-            if cell.is_end:
-                end_cell = cell
-            grid[x][y] = cell
+    def __eq__(self, other):
+        if self.width != other.width:
+            return False
+        if self.height != other.height:
+            return False
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.get_cell(x, y) != other.get_cell(x, y):
+                    return False
+        return True
 
-    return grid, start_cell, end_cell
+    @staticmethod
+    def parse_grid(input_str):
+        cells = defaultdict(dict)
+        start_cell = None
+        end_cell = None
 
-class MoveDirection(Enum):
-    LEFT = "left"
-    RIGHT = "right"
-    DOWN = "down"
-    UP = "up"
-
-def get_adjacent_cell(grid, current, direction):
-    mapper = {
-        MoveDirection.LEFT: (current.x - 1, current.y),
-        MoveDirection.RIGHT: (current.x + 1, current.y),
-        MoveDirection.DOWN: (current.x, current.y - 1),
-        MoveDirection.UP: (current.x, current.y + 1)
-    }
-    x, y = mapper[direction]
-    try:
-        return grid[x][y]
-    except KeyError:
-        raise OutOfBounds(f"{x}{y}")
-
-def shortest_path_predecessors(grid, start_cell):
-
-    width = len(grid.keys())
-    height = len(grid[0].keys())
-    unvisited = set([(x, y) for x in range(width) for y in range(height)])
-    shortest_distances = {(start_cell.x, start_cell.y): 0}
-
-    # best predecessor of given position
-    pred = {}
-
-    while unvisited:
-
-        # get unvisited cell with known shortest distance
-        current_shortest = None
-        for (x, y), d in shortest_distances.items():
-            if (x, y) in unvisited and (current_shortest is None or d < current_shortest[-1]):
-                current_shortest = (x, y, d)
-
-        if current_shortest is None:
-            raise Exception('No shortest path exists')
-
-        current_cell = grid[current_shortest[0]][current_shortest[1]]
-        current_dist = current_shortest[-1]
-
-        # check all adjacent cells
-        for direction in MoveDirection:
-            try:
-                adjacent_cell = get_adjacent_cell(grid, current_cell, direction)
-                if (current_cell.height - adjacent_cell.height) >= -1 and (current_dist + 1) < shortest_distances.get((adjacent_cell.x, adjacent_cell.y), inf):
-                    shortest_distances[(adjacent_cell.x, adjacent_cell.y)] = current_dist + 1
-                    pred[(adjacent_cell.x, adjacent_cell.y)] = (current_cell.x, current_cell.y)
-
-            except OutOfBounds:
-                continue
-
-        unvisited.remove((current_cell.x, current_cell.y))
-
-    return pred
-
-def solve(input_str):
-
-    grid, start_cell, end_cell = parse_grid(input_str)
-
-    draw = defaultdict(dict)
-    for y, line in enumerate(input_str.split('\n')):
-        for x, h in enumerate(line):
-            draw[x][y] = h
-
-    pred = shortest_path_predecessors(grid, start_cell)
-    current_x, current_y = end_cell.x, end_cell.y
-    nb_steps = 0
-
-    while (current_x, current_y) != (start_cell.x, start_cell.y):
-        current_x, current_y = pred[current_x, current_y]
-        draw[current_x][current_y] = 'X'
-        nb_steps += 1
-
-    width = len(draw.keys())
-    height = len(draw[0].keys())
-
-    print('\n\n')
-    for y in range(height):
-        line = ""
-        for x in range(width):
-            line += draw[x][y]
-        print(line)
-
-    return nb_steps
-
-def solve_part_two(input_str):
-
-    grid, start_cell, end_cell = parse_grid(input_str)
-
-    starting_positions = []
-
-    current_min = None
-
-    draw = defaultdict(dict)
-    for y, line in enumerate(input_str.split('\n')):
-        for x, h in enumerate(line):
-            draw[x][y] = h
-            if h in ('a', 'S'):
-                starting_positions.append((x, y))
-
-    for starting_position in starting_positions:
-
-        draw = defaultdict(dict)
         for y, line in enumerate(input_str.split('\n')):
-            for x, h in enumerate(line):
-                draw[x][y] = h
+            for x, _input in enumerate(line):
+                cell = Cell.parse_cell(_input, x, y)
+                if cell.is_start:
+                    start_cell = cell
+                if cell.is_end:
+                    end_cell = cell
+                cells[x][y] = cell
 
-        skip = False
+        return Grid(cells=cells, start_cell=start_cell, end_cell=end_cell)
+
+    def get_cell(self, x, y):
         try:
-            pred = shortest_path_predecessors(grid, start_cell)
-        except Exception:
-            continue
+            return self.cells[x][y]
+        except KeyError as exc:
+            raise OutOfBounds from exc
 
-        current_x, current_y = end_cell.x, end_cell.y
-        nb_steps = 0
-        start_cell = grid[starting_position[0]][starting_position[1]]
+    def get_adjacent_cells(self, cell):
+        adjacent_cells = []
+        for delta_x, delta_y in [
+            (1, 0),
+            (-1, 0),
+            (0, 1),
+            (0, -1)
+        ]:
+            try:
+                adj = self.get_cell(cell.x + delta_x, cell.y + delta_y)
+                adjacent_cells.append(adj)
+            except OutOfBounds:
+                pass
+        return adjacent_cells
 
-        while (current_x, current_y) != (start_cell.x, start_cell.y):
-            current_x, current_y = pred.get((current_x, current_y), (None, None))
-            if not current_x:
-                skip = True
-                break
-            if skip:
-                continue
-            draw[current_x][current_y] = 'X'
-            nb_steps += 1
-
-        width = len(draw.keys())
-        height = len(draw[0].keys())
-
-        print('\n')
-        for y in range(height):
+    def draw(self):
+        for x in self.cells.keys():
             line = ""
-            for x in range(width):
-                line += draw[x][y]
+            for cell in self.cells[x]:
+                line += str(cell)
             print(line)
 
-        current_min = nb_steps if not current_min else min(current_min, nb_steps)
+def shortest_distance(grid, start_cell=None):
 
-    return current_min+1
+    if not start_cell:
+        start_cell = grid.start_cell
+
+    visited = set()
+    end_cell = grid.end_cell
+    distances = {(start_cell.x, start_cell.y): 0}
+
+    queue = [start_cell]
+
+    while queue:
+        current_cell = queue.pop(0)
+        for adjacent_cell in grid.get_adjacent_cells(current_cell):
+            if (adjacent_cell.x, adjacent_cell.y) not in visited and adjacent_cell.height <= (current_cell.height + 1):
+                queue.append(adjacent_cell)
+                visited.add((adjacent_cell.x, adjacent_cell.y))
+                distance = distances[(current_cell.x, current_cell.y)] + 1
+                distances[(adjacent_cell.x, adjacent_cell.y)] = distance
+                if adjacent_cell == end_cell:
+                    return distance
+
+    return inf
+def solve(input_str):
+    grid = Grid.parse_grid(input_str)
+    _shortest_distance = shortest_distance(grid)
+    return _shortest_distance
+
+def solve_part_two(input_str):
+    grid = Grid.parse_grid(input_str)
+
+    min_shortest_distance = inf
+
+    for x in range(grid.width):
+        for y in range(grid.height):
+            cell = grid.get_cell(x, y)
+            if cell.height == 0:
+                min_shortest_distance = min(shortest_distance(grid, cell), min_shortest_distance)
+
+    return min_shortest_distance
 
 if __name__ == '__main__':
-    # print(solve(read_day_input_file(DAY)))
-    print(solve_part_two(read_day_input_file(DAY)))
+    input_str = read_day_input_file(DAY)
+    print(solve(input_str))
+    print(solve_part_two(input_str))
