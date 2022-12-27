@@ -1,5 +1,8 @@
+from pathlib import Path
+
 def read_day_input_file(day: int) -> str:
-    path = f'answers/day_{day}/input.txt'
+
+    path = str(Path().resolve().parent) + f'/day_{day}/input.txt'
     return read_file(path)
 
 def read_file(path: str) -> str:
