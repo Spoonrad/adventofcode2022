@@ -39,8 +39,24 @@ def coverage_at_y(y, _map):
 
 def solve(input_str, y):
   _map = parse(input_str)
-  coverage = coverage_at_y(y, _map)
-  return len(coverage)
+
+  cov = set()
+
+  for sensor, beacon in _map.items():
+    _dist = dist(sensor, beacon)
+    delta_y = abs(sensor[1] - y)
+    nb_cov = _dist - delta_y
+    if nb_cov > 0:
+      for x in range(nb_cov+1):
+        for neg in (1, -1):
+          coords = (sensor[0] + x*neg, y)
+          if coords not in _map.values():
+            cov.add(coords)
+
+  return len(cov)
+
+
+
 
 if __name__ == '__main__':
   print(solve(read_day_input_file(DAY), 2000000))
