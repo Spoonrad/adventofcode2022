@@ -37,26 +37,36 @@ def coverage_at_y(y, _map):
     coverage = coverage.union(get_sensor_coverage(sensor, beacon))
   return [coords for coords in coverage if coords[1] == y and coords not in _map.values()]
 
-def solve(input_str, y):
+def solve(input_str):
   _map = parse(input_str)
 
-  cov = set()
+  cov_intervals = []
 
-  for sensor, beacon in _map.items():
-    _dist = dist(sensor, beacon)
-    delta_y = abs(sensor[1] - y)
-    nb_cov = _dist - delta_y
-    if nb_cov > 0:
-      for x in range(nb_cov+1):
-        for neg in (1, -1):
-          coords = (sensor[0] + x*neg, y)
-          if coords not in _map.values():
-            cov.add(coords)
+  for y in range(20):
+    for sensor, beacon in _map.items():
+      _dist = dist(sensor, beacon)
+      delta_y = abs(sensor[1] - y)
+      nb_cov = _dist - delta_y
+      if nb_cov > 0:
+        cov_interval = (sensor[0] - nb_cov, sensor[0] + nb_cov)
+        cov_intervals.append(cov_interval)
+    uncov = [(0, 20)]
+    for _uncov in uncov:
+      for cov_interval in cov_intervals:
+        
 
-  return len(cov)
 
+  nb_tiles_covered = 0
 
+  for x in range(4000000):
+    cov_ = []
+    for cov_min, cov_max in cov_intervals:
+      if x >= cov_min and x <= cov_max:
+        nb_tiles_covered += 1
+        cov_.append()
+        break
 
+  return nb_tiles_covered
 
 if __name__ == '__main__':
   print(solve(read_day_input_file(DAY), 2000000))
